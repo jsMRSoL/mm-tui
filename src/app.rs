@@ -4,9 +4,10 @@ use crate::colours::{make_bobbles_span, HEADER_STYLE};
 use tui::text::{Span, Spans, Text};
 
 #[derive(PartialEq, Eq)]
-pub enum Outcome {
+pub enum GameState {
     Win,
     Loss,
+    InProgress,
 }
 
 pub struct App<'app> {
@@ -16,7 +17,7 @@ pub struct App<'app> {
     pub input_cursor: usize,
     pub secret: Vec<Bobble>,
     pub turn: usize,
-    pub outcome: Outcome,
+    pub game_state: GameState,
     pub guesses: Vec<Spans<'app>>,
 }
 
@@ -33,7 +34,7 @@ impl<'app> App<'app> {
             input_cursor: 0,
             secret: make_secret(),
             turn: 0,
-            outcome: Outcome::Loss,
+            game_state: GameState::InProgress,
             guesses: Vec::new(),
         };
     }
@@ -96,7 +97,7 @@ impl<'app> App<'app> {
             }
 
             if right_col_right_pos == 5 {
-                self.outcome = Outcome::Win;
+                self.game_state = GameState::Win;
                 return;
             }
 
@@ -104,7 +105,7 @@ impl<'app> App<'app> {
             right_col = right_col - right_col_right_pos;
 
             let mut guess_assessment = vec![
-                Span::raw(format!("Guess {}: ", self.turn)),
+                Span::raw(format!(" Guess {}: ", self.turn)),
             ];
 
             let bobble_span = make_bobbles_span(&guess_vec);
