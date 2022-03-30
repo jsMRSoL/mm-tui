@@ -15,6 +15,8 @@ use tui::{
 };
 use tui_mm::app::{App, GameState};
 
+const MAX_TURNS: u8 = 12;
+
 fn main() -> Result<(), io::Error> {
     // setup terminal
     let mut app = App::new();
@@ -38,14 +40,17 @@ fn main() -> Result<(), io::Error> {
                 KeyCode::Right => app.right(),
                 KeyCode::Enter => {
                     app.submit_guess();
-                    if app.game_state == GameState::Win {
-                        break;
-                    }
+                    // if app.game_state == GameState::Win {
+                    //     break;
+                    // }
                 }
                 KeyCode::Char(char) => app.input_write(char),
                 _ => {}
             },
             _ => {}
+        }
+        if app.turn > MAX_TURNS {
+            break
         }
     }
 
@@ -91,6 +96,17 @@ fn ui<T: Backend>(f: &mut Frame<T>, app: &mut App) {
         let offset = app.input.len();
         f.set_cursor(chunks[2].x + 1 + offset as u16, chunks[2].y + 1);
     }
-    if app.game_state == GameState::Win {}
+    if app.game_state == GameState::Win {
+        let win_message_block = Layout::default()
+        .direction(Direction::Horizontal)
+            .constraints([Constraint::Min(1), Constraint::Max(38), Constraint::Min(1)].as_ref())
+            .split(chunks[1]);
+        let text = "Congratulations! You are a mastermind!";
+        let message = Paragraph::new(text).block(
+            Block::default()
+            .title("You win!")
+                .borders(Borders::ALL),);
+        f.render_widget(message, win_message_block[1]);
+    }
     if app.game_state == GameState::Loss {}
 }

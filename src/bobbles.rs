@@ -1,5 +1,5 @@
-use rand::Rng;
 use super::error::ParseBobbleStrError;
+use rand::Rng;
 use std::str::FromStr;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -47,11 +47,38 @@ pub fn make_secret() -> Vec<Bobble> {
 
 pub fn parse_guess(guess: String) -> Result<Vec<Bobble>, ParseBobbleStrError> {
     let mut guess_vec = guess
-        .split(" ")
-        .map(|c| c.trim().parse::<Bobble>())
+        .split("")
+        // filter catches both "" and " "
+        .filter(|&c| c.trim().len() > 0)
+        .map(|c| c.parse::<Bobble>())
         .collect::<Result<Vec<Bobble>, _>>()?;
     if guess_vec.len() > 5 {
         guess_vec.truncate(5);
     }
     Ok(guess_vec)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // fn parse_guess2(guess: String) -> Vec<String> {
+    //     let guess_vec = guess.split("").filter(|&c| c.trim().len() > 0).map(|c| c.to_string()).collect();
+    //     guess_vec
+    // }
+
+    #[test]
+    fn test_parse_guess_without_spaces() {
+        let guess = "RGBPp".into();
+        let parsed = parse_guess(guess);
+        println!("{:#?}", parsed);
+    }
+
+    #[test]
+    fn test_parse_guess_with_spaces() {
+        let guess = "R G B P p".into();
+        let parsed = parse_guess(guess);
+        println!("{:#?}", parsed);
+
+    }
 }

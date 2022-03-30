@@ -16,7 +16,7 @@ pub struct App<'app> {
     pub input: Vec<char>,
     pub input_cursor: usize,
     pub secret: Vec<Bobble>,
-    pub turn: usize,
+    pub turn: u8,
     pub game_state: GameState,
     pub guesses: Vec<Spans<'app>>,
 }
