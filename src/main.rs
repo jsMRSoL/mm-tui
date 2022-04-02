@@ -8,9 +8,9 @@ use std::io;
 use tui::{
     backend::Backend,
     backend::CrosstermBackend,
-    layout::{Constraint, Direction, Layout},
-    text::Text,
-    widgets::{Block, Borders, Paragraph},
+    layout::{Rect, Constraint, Direction, Layout},
+    text::{Text, Span, Spans},
+    widgets::{Block, Borders, Paragraph, Clear},
     Frame, Terminal,
 };
 use tui_mm::app::{App, GameState};
@@ -38,12 +38,7 @@ fn main() -> Result<(), io::Error> {
                 KeyCode::Backspace => app.input_remove_previous(),
                 KeyCode::Left => app.left(),
                 KeyCode::Right => app.right(),
-                KeyCode::Enter => {
-                    app.submit_guess();
-                    // if app.game_state == GameState::Win {
-                    //     break;
-                    // }
-                }
+                KeyCode::Enter => app.submit_guess(),
                 KeyCode::Char(char) => app.input_write(char),
                 _ => {}
             },
@@ -82,6 +77,8 @@ fn ui<T: Backend>(f: &mut Frame<T>, app: &mut App) {
 
     my_text.extend(app.guesses.clone());
     let board = Paragraph::new(my_text).block(Block::default());
+    f.render_widget(board, chunks[1]);
+
     let input_vec = app.input();
     let input_txt = input_vec.iter().collect::<String>();
     let input_area = Paragraph::new(input_txt).block(
@@ -89,7 +86,6 @@ fn ui<T: Backend>(f: &mut Frame<T>, app: &mut App) {
             .title("Enter your guess")
             .borders(Borders::ALL),
     );
-    f.render_widget(board, chunks[1]);
     f.render_widget(input_area, chunks[2]);
 
     if app.game_state == GameState::InProgress {
@@ -97,16 +93,70 @@ fn ui<T: Backend>(f: &mut Frame<T>, app: &mut App) {
         f.set_cursor(chunks[2].x + 1 + offset as u16, chunks[2].y + 1);
     }
     if app.game_state == GameState::Win {
-        let win_message_block = Layout::default()
-        .direction(Direction::Horizontal)
-            .constraints([Constraint::Min(1), Constraint::Max(38), Constraint::Min(1)].as_ref())
-            .split(chunks[1]);
-        let text = "Congratulations! You are a mastermind!";
-        let message = Paragraph::new(text).block(
+        let area = centered_rect(26, 5, chunks[1]);
+        f.render_widget(Clear, area);
+        // A Text is a Text<'a?> { lines: Vec<Spans<'a>> }
+        let mut winner_message: Text = Text::styled("    Congratulations!", *tui_mm::colours::RED_STYLE);
+        winner_message.extend(Text::styled("  You are a MASTERMIND!", *tui_mm::colours::ORANGE_STYLE));
+        let mut bobble_span_start = vec![Span::raw(" The code was ")];
+        let bobble_span = tui_mm::colours::make_bobbles_span(&app.secret);
+        bobble_span_start.extend(bobble_span);
+        let bobble_spans = Spans::from(bobble_span_start);
+        let message_end = Text::from(bobble_spans);
+        winner_message.extend(message_end);
+        let message = Paragraph::new(winner_message).block(
             Block::default()
             .title("You win!")
                 .borders(Borders::ALL),);
-        f.render_widget(message, win_message_block[1]);
+        f.render_widget(message, area);
     }
-    if app.game_state == GameState::Loss {}
+    if app.game_state == GameState::Loss {
+        let area = centered_rect(29, 5, chunks[1]);
+        f.render_widget(Clear, area);
+        // A Text is a Text<'a?> { lines: Vec<Spans<'a>> }
+        let mut winner_message: Text = Text::styled("  Better luck next time!", *tui_mm::colours::RED_STYLE);
+        winner_message.extend(Text::styled(" You are not a MASTERMIND.", *tui_mm::colours::ORANGE_STYLE));
+        let mut bobble_span_start = vec![Span::raw("  The code was ")];
+        let bobble_span = tui_mm::colours::make_bobbles_span(&app.secret);
+        bobble_span_start.extend(bobble_span);
+        let bobble_spans = Spans::from(bobble_span_start);
+        let message_end = Text::from(bobble_spans);
+        winner_message.extend(message_end);
+        let message = Paragraph::new(winner_message).block(
+            Block::default()
+            .title("You lost!")
+                .borders(Borders::ALL),);
+        f.render_widget(message, area);
+    }
+}
+
+fn centered_rect(width: u16, height: u16, r: Rect) -> Rect {
+    let Rect {
+        width: grid_width,
+        height: grid_height,
+        ..
+    } = r;
+    let popup_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(
+            [
+                Constraint::Length(grid_height / 2 - height / 2),
+                Constraint::Length(height),
+                Constraint::Length(grid_height / 2 - height / 2),
+            ]
+            .as_ref(),
+        )
+        .split(r);
+
+    Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(
+            [
+                Constraint::Length(grid_width / 2 - width / 2),
+                Constraint::Length(width),
+                Constraint::Length(grid_width / 2 - width / 2),
+            ]
+            .as_ref(),
+        )
+        .split(popup_layout[1])[1]
 }
