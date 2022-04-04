@@ -47,7 +47,7 @@ pub fn get_bobbles_string() -> Text<'static> {
     text
 }
 
-pub fn make_bobbles_span<'a>(bobbles: &Vec<Bobble>) -> Vec<Span<'a>> {
+pub fn make_bobbles_span<'a>(bobbles: &[Bobble]) -> Vec<Span<'a>> {
     let mut spans: Vec<Span<'a>> = Vec::new(); 
     use Bobble::*;
     for b in bobbles {
