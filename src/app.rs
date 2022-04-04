@@ -39,6 +39,16 @@ impl<'app> App<'app> {
         };
     }
 
+    pub fn restart(&mut self) {
+        self.board.clear();
+        self.input.clear();
+        self.input_cursor = 0;
+        self.secret = make_secret();
+        self.turn = 0;
+        self.game_state = GameState::InProgress;
+        self.guesses.clear();
+    }
+
     pub fn store(&mut self, c: char) {
         self.input.push(c)
     }
@@ -114,19 +124,16 @@ impl<'app> App<'app> {
             right_col = right_col - right_col_right_pos;
 
             // format guess and guess assessment
-            let mut guess_assessment = vec![
-                Span::raw(format!(" Guess {}: ", self.turn)),
-            ];
+            let mut guess_assessment = vec![Span::raw(format!(" Guess {}: ", self.turn))];
 
             let bobble_span = make_bobbles_span(&guess_vec);
             guess_assessment.extend(bobble_span);
-            guess_assessment.push(
-                Span::raw(format!(
-                    " Marks: {}{}{}",
-                    "Y".repeat(right_col_right_pos),
-                    "y".repeat(right_col),
-                    "-".repeat(rest)
-                )));
+            guess_assessment.push(Span::raw(format!(
+                " Marks: {}{}{}",
+                "Y".repeat(right_col_right_pos),
+                "y".repeat(right_col),
+                "-".repeat(rest)
+            )));
 
             let guess_assessment = Spans::from(guess_assessment);
 

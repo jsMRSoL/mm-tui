@@ -11,14 +11,15 @@ use tui::{
     layout::{Constraint, Direction, Layout, Rect},
     text::{Span, Spans, Text},
     widgets::{Block, Borders, Clear, Paragraph},
-    Frame, Terminal,
+    Frame, Terminal, style::Modifier,
 };
 use tui_mm::{
     app::{App, GameState},
     bobbles::Bobble,
+    colours::{RED_STYLE, ORANGE_STYLE},
 };
 
-const MAX_TURNS: u8 = 12;
+const MAX_TURNS: u8 = 15;
 
 fn main() -> Result<(), io::Error> {
     // setup terminal
@@ -43,6 +44,7 @@ fn main() -> Result<(), io::Error> {
                 (KeyCode::Right, GameState::InProgress) => app.right(),
                 (KeyCode::Enter, GameState::InProgress) => app.submit_guess(),
                 (KeyCode::Char(char), GameState::InProgress) => app.input_write(char),
+                (KeyCode::Char(_), _) => app.restart(),
                 (_, _) => {}
             },
             _ => {}
@@ -107,7 +109,7 @@ fn ui<T: Backend>(f: &mut Frame<T>, app: &mut App) {
 
     // show loss screen
     if app.game_state == GameState::Loss {
-        let area = centered_rect(29, 5, chunks[1]);
+        let area = centered_rect(29, 8, chunks[1]);
         let loser_message = get_loss_message(&app.secret);
         let message = Paragraph::new(loser_message)
             .block(Block::default().title("You lost!").borders(Borders::ALL));
@@ -150,10 +152,10 @@ fn centered_rect(width: u16, height: u16, r: Rect) -> Rect {
 fn get_win_message(secret: &[Bobble]) -> Text {
     // A Text is a Text<'a> { lines: Vec<Spans<'a>> }
     let mut winner_message: Text =
-        Text::styled("    Congratulations!", *tui_mm::colours::RED_STYLE);
+        Text::styled("    Congratulations!", *RED_STYLE);
     winner_message.extend(Text::styled(
         "  You are a MASTERMIND!",
-        *tui_mm::colours::ORANGE_STYLE,
+        *ORANGE_STYLE,
     ));
     let mut bobble_span_start = vec![Span::raw(" The code was ")];
     let bobble_span = tui_mm::colours::make_bobbles_span(secret);
@@ -161,16 +163,21 @@ fn get_win_message(secret: &[Bobble]) -> Text {
     let bobble_spans = Spans::from(bobble_span_start);
     let message_end = Text::from(bobble_spans);
     winner_message.extend(message_end);
+    let restart_or_quit_message: Text = Text::styled(
+        "\n  Press <esc> to quit\n  or any key to restart.",
+        tui::style::Style::default().add_modifier(Modifier::ITALIC),
+    );
+    winner_message.extend(restart_or_quit_message);
     winner_message
 }
 
 fn get_loss_message(secret: &[Bobble]) -> Text {
     // A Text is a Text<'a?> { lines: Vec<Spans<'a>> }
     let mut loser_message: Text =
-        Text::styled("  Better luck next time!", *tui_mm::colours::RED_STYLE);
+        Text::styled("  Better luck next time!", *RED_STYLE);
     loser_message.extend(Text::styled(
         " You are not a MASTERMIND.",
-        *tui_mm::colours::ORANGE_STYLE,
+        *ORANGE_STYLE,
     ));
     let mut bobble_span_start = vec![Span::raw("  The code was ")];
     let bobble_span = tui_mm::colours::make_bobbles_span(secret);
@@ -178,5 +185,10 @@ fn get_loss_message(secret: &[Bobble]) -> Text {
     let bobble_spans = Spans::from(bobble_span_start);
     let message_end = Text::from(bobble_spans);
     loser_message.extend(message_end);
+    let restart_or_quit_message: Text = Text::styled(
+        "\n    Press <esc> to quit\n   or any key to restart.",
+        tui::style::Style::default().add_modifier(Modifier::ITALIC),
+    );
+    loser_message.extend(restart_or_quit_message);
     loser_message
 }
