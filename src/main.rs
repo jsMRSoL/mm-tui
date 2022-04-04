@@ -33,19 +33,19 @@ fn main() -> Result<(), io::Error> {
 
         let key = read().unwrap();
         match key {
-            Event::Key(KeyEvent { code, modifiers: _ }) => match code {
-                KeyCode::Esc => break,
-                KeyCode::Backspace => app.input_remove_previous(),
-                KeyCode::Left => app.left(),
-                KeyCode::Right => app.right(),
-                KeyCode::Enter => app.submit_guess(),
-                KeyCode::Char(char) => app.input_write(char),
-                _ => {}
+            Event::Key(KeyEvent { code, modifiers: _ }) => match (code, &app.game_state) {
+                (KeyCode::Esc, _) => break,
+                (KeyCode::Backspace, GameState::InProgress) => app.input_remove_previous(),
+                (KeyCode::Left, GameState::InProgress) => app.left(),
+                (KeyCode::Right, GameState::InProgress) => app.right(),
+                (KeyCode::Enter, GameState::InProgress) => app.submit_guess(),
+                (KeyCode::Char(char), GameState::InProgress) => app.input_write(char),
+                (_, _) => {}
             },
             _ => {}
         }
-        if app.turn > MAX_TURNS {
-            break
+        if app.turn == MAX_TURNS {
+            app.game_state = GameState::Loss;
         }
     }
 
@@ -53,11 +53,11 @@ fn main() -> Result<(), io::Error> {
     disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen,)?;
     terminal.show_cursor()?;
-    println!(
-        "Entered chars: {}",
-        &app.input.drain(..).collect::<String>()
-    );
-    println!("Input cursor position: {}", &app.input_cursor);
+    // println!(
+    //     "Entered chars: {}",
+    //     &app.input.drain(..).collect::<String>()
+    // );
+    // println!("Input cursor position: {}", &app.input_cursor);
 
     Ok(())
 }
