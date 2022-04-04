@@ -8,12 +8,15 @@ use std::io;
 use tui::{
     backend::Backend,
     backend::CrosstermBackend,
-    layout::{Rect, Constraint, Direction, Layout},
-    text::{Text, Span, Spans},
-    widgets::{Block, Borders, Paragraph, Clear},
+    layout::{Constraint, Direction, Layout, Rect},
+    text::{Span, Spans, Text},
+    widgets::{Block, Borders, Clear, Paragraph},
     Frame, Terminal,
 };
-use tui_mm::app::{App, GameState};
+use tui_mm::{
+    app::{App, GameState},
+    bobbles::Bobble,
+};
 
 const MAX_TURNS: u8 = 12;
 
@@ -53,11 +56,6 @@ fn main() -> Result<(), io::Error> {
     disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen,)?;
     terminal.show_cursor()?;
-    // println!(
-    //     "Entered chars: {}",
-    //     &app.input.drain(..).collect::<String>()
-    // );
-    // println!("Input cursor position: {}", &app.input_cursor);
 
     Ok(())
 }
@@ -69,16 +67,19 @@ fn ui<T: Backend>(f: &mut Frame<T>, app: &mut App) {
         .constraints([Constraint::Max(6), Constraint::Min(15), Constraint::Max(3)].as_ref())
         .split(f.size());
 
+    // draw header
     let my_text: Text = app.header.clone();
     let header =
         Paragraph::new(my_text).block(Block::default().title("Guide").borders(Borders::ALL));
     f.render_widget(header, chunks[0]);
-    let mut my_text: Text = Text::raw("");
 
+    // draw board
+    let mut my_text: Text = Text::raw("");
     my_text.extend(app.guesses.clone());
     let board = Paragraph::new(my_text).block(Block::default());
     f.render_widget(board, chunks[1]);
 
+    // draw input area
     let input_vec = app.input();
     let input_txt = input_vec.iter().collect::<String>();
     let input_area = Paragraph::new(input_txt).block(
@@ -88,44 +89,29 @@ fn ui<T: Backend>(f: &mut Frame<T>, app: &mut App) {
     );
     f.render_widget(input_area, chunks[2]);
 
+    // draw cursor
     if app.game_state == GameState::InProgress {
         let offset = app.input.len();
         f.set_cursor(chunks[2].x + 1 + offset as u16, chunks[2].y + 1);
     }
+
+    // show win screen
     if app.game_state == GameState::Win {
         let area = centered_rect(26, 5, chunks[1]);
+        let winner_message = get_win_message(&app.secret);
+        let message = Paragraph::new(winner_message)
+            .block(Block::default().title("You win!").borders(Borders::ALL));
         f.render_widget(Clear, area);
-        // A Text is a Text<'a?> { lines: Vec<Spans<'a>> }
-        let mut winner_message: Text = Text::styled("    Congratulations!", *tui_mm::colours::RED_STYLE);
-        winner_message.extend(Text::styled("  You are a MASTERMIND!", *tui_mm::colours::ORANGE_STYLE));
-        let mut bobble_span_start = vec![Span::raw(" The code was ")];
-        let bobble_span = tui_mm::colours::make_bobbles_span(&app.secret);
-        bobble_span_start.extend(bobble_span);
-        let bobble_spans = Spans::from(bobble_span_start);
-        let message_end = Text::from(bobble_spans);
-        winner_message.extend(message_end);
-        let message = Paragraph::new(winner_message).block(
-            Block::default()
-            .title("You win!")
-                .borders(Borders::ALL),);
         f.render_widget(message, area);
     }
+
+    // show loss screen
     if app.game_state == GameState::Loss {
         let area = centered_rect(29, 5, chunks[1]);
+        let loser_message = get_loss_message(&app.secret);
+        let message = Paragraph::new(loser_message)
+            .block(Block::default().title("You lost!").borders(Borders::ALL));
         f.render_widget(Clear, area);
-        // A Text is a Text<'a?> { lines: Vec<Spans<'a>> }
-        let mut winner_message: Text = Text::styled("  Better luck next time!", *tui_mm::colours::RED_STYLE);
-        winner_message.extend(Text::styled(" You are not a MASTERMIND.", *tui_mm::colours::ORANGE_STYLE));
-        let mut bobble_span_start = vec![Span::raw("  The code was ")];
-        let bobble_span = tui_mm::colours::make_bobbles_span(&app.secret);
-        bobble_span_start.extend(bobble_span);
-        let bobble_spans = Spans::from(bobble_span_start);
-        let message_end = Text::from(bobble_spans);
-        winner_message.extend(message_end);
-        let message = Paragraph::new(winner_message).block(
-            Block::default()
-            .title("You lost!")
-                .borders(Borders::ALL),);
         f.render_widget(message, area);
     }
 }
@@ -159,4 +145,38 @@ fn centered_rect(width: u16, height: u16, r: Rect) -> Rect {
             .as_ref(),
         )
         .split(popup_layout[1])[1]
+}
+
+fn get_win_message(secret: &[Bobble]) -> Text {
+    // A Text is a Text<'a> { lines: Vec<Spans<'a>> }
+    let mut winner_message: Text =
+        Text::styled("    Congratulations!", *tui_mm::colours::RED_STYLE);
+    winner_message.extend(Text::styled(
+        "  You are a MASTERMIND!",
+        *tui_mm::colours::ORANGE_STYLE,
+    ));
+    let mut bobble_span_start = vec![Span::raw(" The code was ")];
+    let bobble_span = tui_mm::colours::make_bobbles_span(secret);
+    bobble_span_start.extend(bobble_span);
+    let bobble_spans = Spans::from(bobble_span_start);
+    let message_end = Text::from(bobble_spans);
+    winner_message.extend(message_end);
+    winner_message
+}
+
+fn get_loss_message(secret: &[Bobble]) -> Text {
+    // A Text is a Text<'a?> { lines: Vec<Spans<'a>> }
+    let mut loser_message: Text =
+        Text::styled("  Better luck next time!", *tui_mm::colours::RED_STYLE);
+    loser_message.extend(Text::styled(
+        " You are not a MASTERMIND.",
+        *tui_mm::colours::ORANGE_STYLE,
+    ));
+    let mut bobble_span_start = vec![Span::raw("  The code was ")];
+    let bobble_span = tui_mm::colours::make_bobbles_span(secret);
+    bobble_span_start.extend(bobble_span);
+    let bobble_spans = Spans::from(bobble_span_start);
+    let message_end = Text::from(bobble_spans);
+    loser_message.extend(message_end);
+    loser_message
 }
