@@ -3,7 +3,7 @@ use tui::text::{Text, Span};
 use lazy_static::lazy_static;
 use super::bobbles::Bobble;
 
-const PIECE: &str = " ";
+const PIECE: &str = "⬤ ";
 
 lazy_static! {
     pub static ref RED_STYLE: Style = Style::default()
