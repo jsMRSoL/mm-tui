@@ -79,11 +79,20 @@ impl<'app> App<'app> {
 
     pub fn submit_guess(&mut self) {
         if self.input.len() > 0 {
-            self.turn += 1;
+            // validate guess
             let raw_guess = self.input.drain(..).collect::<String>();
             self.input_cursor = 0;
             // TODO: Error handling
-            let guess_vec = parse_guess(raw_guess).unwrap();
+            // let guess_vec = parse_guess(raw_guess).unwrap();
+            let guess_vec = parse_guess(raw_guess);
+            let guess_vec = match guess_vec {
+                Ok(vec) => vec,
+                Err(_) => return,
+            };
+            // increment turn only after checking guess is valid
+            self.turn += 1;
+
+            // calculate correctness of guess
             let mut right_col_right_pos: usize = 0;
             let mut right_col: usize = 0;
             let mut rest: usize = 5;
@@ -104,6 +113,7 @@ impl<'app> App<'app> {
             rest = rest - right_col;
             right_col = right_col - right_col_right_pos;
 
+            // format guess and guess assessment
             let mut guess_assessment = vec![
                 Span::raw(format!(" Guess {}: ", self.turn)),
             ];
@@ -120,6 +130,7 @@ impl<'app> App<'app> {
 
             let guess_assessment = Spans::from(guess_assessment);
 
+            // store formatted guess/assessment
             self.guesses.push(guess_assessment);
         }
     }
